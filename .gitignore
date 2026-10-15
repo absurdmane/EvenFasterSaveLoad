@@ -1,0 +1,24 @@
+# Build output
+bin/
+obj/
+*.nupkg
+
+# Machine-specific settings (game path)
+local.props
+
+# Decompiled third-party code: never publish
+FastSaveLoadOrig/
+
+# Logs, saves, dumps
+*.log
+*.tnmt
+*.dialogue
+*.dmp
+
+# IDE / tools
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+.claude/

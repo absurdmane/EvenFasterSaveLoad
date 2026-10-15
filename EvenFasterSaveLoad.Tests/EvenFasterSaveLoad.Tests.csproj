@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Offline equivalence tests: runs the game's FullSerializer and ours side by side on plain .NET.
+       Usage: dotnet run -c Release, optionally followed by save file paths to benchmark parsing. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <RollForward>Major</RollForward>
+    <NoWarn>MSB3277;CS0649;CS0414</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.3" PrivateAssets="all" />
+    <ProjectReference Include="..\EvenFasterSaveLoad\EvenFasterSaveLoad.csproj" />
+    <Reference Include="$(ManagedDir)\Assembly-CSharp-firstpass.dll" Publicize="true" />
+    <Reference Include="$(ManagedDir)\Assembly-CSharp.dll" />
+    <Reference Include="$(ManagedDir)\UnityEngine.CoreModule.dll" />
+    <Reference Include="$(GameDir)\BepInEx\core\BepInEx.Core.dll" />
+    <Reference Include="$(GameDir)\BepInEx\core\BepInEx.Unity.Mono.dll" />
+  </ItemGroup>
+
+</Project>

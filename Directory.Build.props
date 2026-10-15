@@ -1,0 +1,17 @@
+<Project>
+
+  <!-- Machine-specific settings (game install path) live in local.props, which is git-ignored.
+       Copy local.props.example to local.props and adjust it. -->
+  <Import Project="$(MSBuildThisFileDirectory)local.props" Condition="Exists('$(MSBuildThisFileDirectory)local.props')" />
+
+  <PropertyGroup>
+    <GameDir Condition="'$(GameDir)' == ''">C:\Program Files (x86)\Steam\steamapps\common\Obenseuer</GameDir>
+    <ManagedDir>$(GameDir)\Obenseuer_Data\Managed</ManagedDir>
+    <BepInExCore>$(GameDir)\BepInEx\core</BepInExCore>
+
+    <!-- Keep local paths (user name, folders) out of the embedded PDB and stack traces. -->
+    <PathMap>$(MSBuildThisFileDirectory)=./</PathMap>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+
+</Project>
