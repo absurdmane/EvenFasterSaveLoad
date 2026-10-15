@@ -1,0 +1,94 @@
+[size=5][b]Even Faster SaveLoad[/b][/size]
+[i]Faster saving, loading and level transitions for Obenseuer. Your save files stay exactly as the game writes them.[/i]
+
+Named after, and inspired by, [url=https://www.nexusmods.com/profile/FireWarp]FireWarp[/url]'s original FastSaveLoad. This is an independent, open-source implementation of the same idea, rewritten from scratch for the current game version and BepInEx 6.
+
+[size=4][b]Results[/b][/size]
+Measured on game version 0.5.05 with a late-game save (12.5 MB Mines level), warm loads, same session with the mod switched off for comparison. Level times are the whole transition, from the screen fading out until the game is visible again:
+
+[code]
+Location            Vanilla   Mod          Time saved
+Mines               11.9 s    6.3-6.7 s    -45%
+Bazaar               9.3 s    5.8-5.9 s    -37%
+Tenement street      6.6 s    3.5-3.9 s    -44%
+Player Tenement      7.1 s    4.3 s        -39%
+Kolhola              5.4 s    3.8 s        -30%
+Small interiors     2.8-3.0 s 2.5-2.7 s    -10%
+Saving (Mines)       1.6 s    0.4-0.5 s    -72%
+[/code]
+[list]
+[*]Reading save files: about [b]6× faster[/b] (Mines: 1.8 s → 0.3 s)
+[*]Writing save files: about [b]4–5× faster[/b] (Mines: 0.9 s → 0.17 s)
+[*]NPC waypoint paths on level load (Mines): [b]3.8 s → 0.5–0.9 s[/b]
+[/list]
+The rest of a transition is Unity loading the scene itself, which no mod can skip. On slower CPUs and HDDs the parts this mod speeds up take a bigger share, so the gain in seconds is usually larger.
+
+[size=4][b]Requirements[/b][/size]
+[list]
+[*][url=https://builds.bepinex.dev/projects/bepinex_be]BepInEx 6 (Unity Mono)[/url] — tested with 6.0.0-be.697
+[*]Obenseuer — tested with 0.5.05
+[/list]
+
+[size=4][b]Installation[/b][/size]
+[list=1]
+[*]Install BepInEx 6 (Unity Mono) into the game folder and start the game once.
+[*]Extract the archive into the game folder, so that you get [font=Courier New]BepInEx\plugins\EvenFasterSaveLoad\EvenFasterSaveLoad.dll[/font].
+[*]Start the game. The config file appears at [font=Courier New]BepInEx\config\obenseuer.evenfastersaveload.cfg[/font].
+[/list]
+[b]Remove the original FastSaveLoad first.[/b] Both mods patch the same parts of the game, so BepInEx won't load this one while the original is installed.
+
+[size=4][b]Configuration[/b][/size]
+Defaults are what most people want. Notable options:
+[list]
+[*][font=Courier New]LoadingFades[/font] — [font=Courier New]Fast[/font] (default), [font=Courier New]Vanilla[/font] or [font=Courier New]Off[/font] (instant cut).
+[*][font=Courier New]Threads[/font] — threads used to write big save files; 0 = all cores.
+[*][font=Courier New]PathfindingThreads[/font] — 0 = all cores but one; 1 = leave the game's setting.
+[*][font=Courier New]FastSceneLoading[/font] — experimental, off by default: lets Unity spend more time per frame loading while the loading screen is up.
+[/list]
+
+[size=4][b]Is it safe for my saves?[/b][/size]
+That was the main design goal.
+[list]
+[*]Save files written by the mod are [b]byte-for-byte identical[/b] to what the game itself writes. You can remove the mod at any time; your saves keep working.
+[*][b]Safety check:[/b] the first time each save file is written in a session, the mod also lets the game produce it the normal way and compares the two before anything touches the disk. If they ever differ, the game's own version is written and fast saving switches itself off until you restart, with the details in the log. A bug in the mod can't silently get into your saves this way.
+[*]Whenever the mod meets data it can't reproduce exactly, it hands that file (or that part of it) to the game's own code. That costs speed, never data. The reason is written to the log.
+[*]The mod doesn't change what gets saved or how the game restores your world; it only does the same work faster.
+[*]It was tested with a built-in verification mode that runs the game's own serializer next to the mod on every save and load and compares the results. Verification is available to you too (see Debugging below).
+[/list]
+As with any mod that touches saving: back up your [font=Courier New]Saves[/font] folder before installing. It lives in [font=Courier New]%USERPROFILE%\AppData\LocalLow\Loiste Interactive\Obenseuer\Saves[/font].
+
+[size=4][b]What it does[/b][/size]
+[list]
+[*][b]Fast serializer[/b] — writes save files straight into a byte buffer instead of building the game's whole JSON tree first. Large files are written by several threads.
+[*][b]Fast deserializer[/b] — reads save files without building the intermediate JSON tree.
+[*][b]Batched NPC paths[/b] — on level load the game computes NPC paths one at a time and waits for each; the mod requests them all at once and uses all CPU cores for pathfinding.
+[*][b]Parallel save copy[/b] — copies the previous save folder with several threads and skips the files the game overwrites right after anyway.
+[*][b]Background map image[/b] — the explored-map PNG is encoded and written in the background instead of stalling the save.
+[*][b]Faster loading-screen fades[/b] — the fades are 4× faster with a shorter pause after a load. Can be set back to the game's fades, or turned off completely.
+[/list]
+Every feature can be switched off separately in the config.
+
+[size=4][b]Debugging and benchmarking[/b][/size]
+In the [font=Courier New][Debug][/font] section of the config:
+[list]
+[*][font=Courier New]DebugMode[/font] — shows a small panel with the last load, save and transition times, enables [b]F10[/b] (mod on) / [b]F11[/b] (mod off, plain game) for side-by-side comparisons, and writes save/load-related errors to [font=Courier New]BepInEx\EvenFasterSaveLoad-debug.log[/font].
+[*][font=Courier New]LogLoadTimes[/font] — writes detailed timings to the BepInEx console.
+[*][font=Courier New]VerifyAgainstVanilla[/font] — also runs the game's own serializer on every save and load and reports any difference. Slow, for testing only.
+[/list]
+
+[size=4][b]Reporting problems[/b][/size]
+Please enable [font=Courier New]DebugMode[/font], reproduce the problem, and attach [font=Courier New]BepInEx\EvenFasterSaveLoad-debug.log[/font] and [font=Courier New]BepInEx\LogOutput.log[/font] to your report, along with what you were doing (saving, changing level, loading from the menu) and where.
+
+[size=4][b]Compatibility[/b][/size]
+[list]
+[*]Works alongside other BepInEx mods. Mods that replace the game's save system itself may conflict.
+[*]Not compatible with the original FastSaveLoad (see Installation).
+[*]A future game update can break individual features; each one is applied separately, so the rest keeps working and the broken part falls back to the game's own behavior.
+[/list]
+
+[size=4][b]Credits and source[/b][/size]
+[list]
+[*]Idea: [url=https://www.nexusmods.com/profile/FireWarp]FireWarp[/url]'s original FastSaveLoad.
+[*]Author: absurdmane.
+[*]Source code (MIT license): [url=https://github.com/absurdmane/EvenFasterSaveLoad]GitHub[/url]
+[/list]

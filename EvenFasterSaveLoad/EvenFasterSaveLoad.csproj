@@ -1,0 +1,57 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Unity 6 Mono exposes the .NET Standard 2.1 API surface; net6.0 assemblies don't load there. -->
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>EvenFasterSaveLoad</AssemblyName>
+    <RootNamespace>EvenFasterSaveLoad</RootNamespace>
+    <Description>Fast save/load for Obenseuer (BepInEx 6, Unity Mono)</Description>
+    <Authors>absurdmane</Authors>
+    <Company>absurdmane</Company>
+    <Product>Even Faster SaveLoad</Product>
+    <Version>1.0.0</Version>
+    <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Nullable>disable</Nullable>
+    <DebugType>embedded</DebugType>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- GameDir comes from ../local.props (see local.props.example). dotnet build -p:Deploy=true copies the dll into BepInEx\plugins\EvenFasterSaveLoad -->
+    <Deploy Condition="'$(Deploy)' == ''">false</Deploy>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Makes private game/FullSerializer members visible at compile time (Mono doesn't enforce access checks). -->
+    <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="$(BepInExCore)\BepInEx.Core.dll" Private="false" />
+    <Reference Include="$(BepInExCore)\BepInEx.Unity.Mono.dll" Private="false" />
+    <Reference Include="$(BepInExCore)\0Harmony.dll" Private="false" />
+
+    <Reference Include="$(ManagedDir)\Assembly-CSharp.dll" Publicize="true" Private="false" />
+    <Reference Include="$(ManagedDir)\Assembly-CSharp-firstpass.dll" Publicize="true" Private="false" />
+    <Reference Include="$(ManagedDir)\AstarPathfindingProject.dll" Publicize="true" Private="false" />
+    <Reference Include="$(ManagedDir)\UnityEngine.dll" Private="false" />
+    <Reference Include="$(ManagedDir)\UnityEngine.CoreModule.dll" Private="false" />
+    <Reference Include="$(ManagedDir)\UnityEngine.ImageConversionModule.dll" Private="false" />
+    <Reference Include="$(ManagedDir)\UnityEngine.InputLegacyModule.dll" Private="false" />
+    <Reference Include="$(ManagedDir)\UnityEngine.IMGUIModule.dll" Private="false" />
+    <Reference Include="$(ManagedDir)\UnityEngine.TextRenderingModule.dll" Private="false" />
+    <Reference Include="$(ManagedDir)\UnityEngine.UIModule.dll" Private="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="EvenFasterSaveLoad.Tests" />
+  </ItemGroup>
+
+  <Target Name="DeployToGame" AfterTargets="Build" Condition="'$(Deploy)' == 'true'">
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(GameDir)\BepInEx\plugins\EvenFasterSaveLoad" />
+    <Message Importance="high" Text="EvenFasterSaveLoad -> $(GameDir)\BepInEx\plugins\EvenFasterSaveLoad" />
+  </Target>
+
+</Project>

@@ -1,0 +1,1 @@
+Faster saving, loading and level transitions (Mines: 12 s → 6.5 s). Save files stay byte-for-byte identical to the game's own, so you can remove the mod any time. Independent open-source rewrite of FireWarp's FastSaveLoad for the current game version and BepInEx 6.
