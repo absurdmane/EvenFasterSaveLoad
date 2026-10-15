@@ -22,3 +22,6 @@ FastSaveLoadOrig/
 *.user
 *.suo
 .claude/
+
+# Nexus page drafts and images (kept locally)
+nexus/

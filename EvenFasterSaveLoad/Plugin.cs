@@ -15,7 +15,7 @@ namespace EvenFasterSaveLoad
     {
         public const string Guid = "obenseuer.evenfastersaveload";
         public const string Name = "Even Faster SaveLoad";
-        public const string Version = "1.0.0";
+        public const string Version = "1.0.1";
 
         internal static ManualLogSource Log;
 

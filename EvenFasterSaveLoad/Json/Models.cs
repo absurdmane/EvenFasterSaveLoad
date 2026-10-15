@@ -474,6 +474,13 @@ namespace EvenFasterSaveLoad.Json
             }
             else if (converterType == typeof(fsReflectedConverter))
                 BuildObject(m, fs);
+            else if (converterType.Name == "SavedAssetConverter")
+            {
+                // The game's asset converter writes through a plain fsReflectedConverter, but on reading it swaps in
+                // loaded assets, so only writing is done here.
+                BuildObject(m, fs);
+                m.ReadBlocker ??= $"{type}: converter {converterType.Name}";
+            }
             else if (converter is fsDirectConverter && SupportedDirectConverters.Contains(converterType.Name))
             {
                 m.Kind = Kind.Direct;
