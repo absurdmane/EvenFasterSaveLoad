@@ -4,9 +4,8 @@ A BepInEx 6 (Unity Mono) plugin that makes saving and loading in **Obenseuer** f
 save format: files written by the mod are byte-for-byte what the game itself would write, and the game can
 still read them with the mod removed.
 
-Named after, and inspired by, the original [FastSaveLoad by FireWarp](https://www.nexusmods.com/profile/FireWarp), which stopped
-working after a game update. This is an independent, open-source implementation of the same idea, written from
-scratch against FullSerializer's documented behavior.
+Named after, and inspired by, the original [FastSaveLoad by FireWarp](https://www.nexusmods.com/profile/FireWarp). 
+This is an independent, open-source implementation of the same idea, written from scratch against FullSerializer's documented behavior.
 
 ## What it does
 
