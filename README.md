@@ -1,4 +1,4 @@
-# Even Faster SaveLoad for Obenseuer
+# Even Faster Save and Load for Obenseuer
 
 A BepInEx 6 (Unity Mono) plugin that makes saving and loading in **Obenseuer** faster, without changing the
 save format: files written by the mod are byte-for-byte what the game itself would write, and the game can
