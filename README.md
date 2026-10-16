@@ -30,7 +30,7 @@ switched off until restart. Cost: one extra vanilla save per file per session (a
 ## Results
 
 Measured in game 0.5.05 on a 16-core desktop with a late-game save (12.5 MB Mines level), warm runs,
-vanilla = the same session with the mod switched off (F11 in debug mode):
+vanilla = the same session with the mod switched off (switched off from the dev-only DevMenu):
 
 | | Vanilla | Mod |
 |---|---|---|
@@ -57,16 +57,18 @@ spend proportionally more time in the parts the mod speeds up.
 
 1. Install [BepInEx 6 (Unity Mono)](https://builds.bepinex.dev/projects/bepinex_be) into the game folder.
 2. Put `EvenFasterSaveLoad.dll` into `BepInEx/plugins/EvenFasterSaveLoad/`.
-3. Start the game once; settings appear in `BepInEx/config/obenseuer.evenfastersaveload.cfg`.
+3. Start the game once; settings appear in `BepInEx/config/obenseuer.absurdmane.evenfastersaveload.cfg` (an old `obenseuer.evenfastersaveload.cfg` is taken over on the first start).
 
 Don't install it together with the original FastSaveLoad: both patch the same methods, so BepInEx will skip this one if the original is present.
 
 ## Debugging and benchmarking
 
+`[Mod] Enabled` switches the whole mod off and on, without a restart (pathfinding threads change from the next scene).
+
 In the `[Debug]` section of the config:
 
-- `DebugMode` — enables hotkeys **F10** (fast serializer on) / **F11** (vanilla) for A/B tests without
-  restarting, and writes `BepInEx/EvenFasterSaveLoad-debug.log` with the mod's warnings plus every Unity error and
+- `TimingsWindow` — a small window with the last load/save durations (off by default).
+- `DebugMode` — writes `BepInEx/EvenFasterSaveLoad-debug.log` with the mod's warnings plus every Unity error and
   exception, tagged with the current phase (saving/loading) and active mode.
 - `LogLoadTimes` — logs total save and load times and per-file (de)serialization times to the BepInEx console,
   in either mode.

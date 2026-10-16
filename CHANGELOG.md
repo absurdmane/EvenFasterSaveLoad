@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.0
+
+- Removed the debug hotkeys (F10 / F11, `EnableKey` / `DisableKey`). The mod on/off switch for A/B tests is now a button
+  in the dev-only DevMenu.
+- `[Mod] Enabled`: switch the whole mod off and on from the config, without a restart.
+- The timings window has its own setting, `TimingsWindow` (off by default), instead of always opening with `DebugMode`.
+
 ## 1.0.1
 
 - Game 0.5.08: furniture saved through the game's `SavedAssetConverter` is written by the fast serializer again

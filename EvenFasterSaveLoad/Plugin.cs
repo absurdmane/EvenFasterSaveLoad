@@ -13,9 +13,12 @@ namespace EvenFasterSaveLoad
     [BepInIncompatibility("FastSaveLoad")] // FireWarp's original FastSaveLoad patches the same methods
     public sealed class Plugin : BaseUnityPlugin
     {
-        public const string Guid = "obenseuer.evenfastersaveload";
+        public const string Guid = "obenseuer.absurdmane.evenfastersaveload";
+
+        /// <summary>The GUID before 1.0.2; its config file is taken over on the first start.</summary>
+        private const string OldGuid = "obenseuer.evenfastersaveload";
         public const string Name = "Even Faster SaveLoad";
-        public const string Version = "1.0.1";
+        public const string Version = "1.1.0";
 
         internal static ManualLogSource Log;
 
@@ -30,12 +33,11 @@ namespace EvenFasterSaveLoad
         internal static ConfigEntry<bool> FastSceneLoading;
         internal static ConfigEntry<FadeMode> LoadingFades;
         internal static ConfigEntry<bool> DebugMode;
-        internal static ConfigEntry<KeyCode> EnableKey;
-        internal static ConfigEntry<KeyCode> DisableKey;
         internal static ConfigEntry<bool> LogLoadTimes;
         internal static ConfigEntry<bool> VerifyAgainstVanilla;
 
-        /// <summary>Debug-mode master switch (F10 on / F11 off = plain vanilla game). Not saved: a restart goes back to the config.</summary>
+        /// <summary>Master switch ([Mod] Enabled; off = plain vanilla game), also flipped from DevMenu. Works without a restart.</summary>
+        internal static ConfigEntry<bool> Enabled;
         private static bool modEnabled = true;
 
         /// <summary>A feature is active when it's enabled in the config and the debug master switch is on.</summary>
@@ -56,13 +58,14 @@ namespace EvenFasterSaveLoad
         internal static bool FastDeserializerActive => On(FastDeserializer);
 
         private Harmony harmony;
-        private string banner;
-        private float bannerUntil;
+        private static string banner;
+        private static float bannerUntil;
         private GUIStyle bannerStyle;
 
         private void Awake()
         {
             Log = Logger;
+            TakeOverOldConfig();
             BindConfig();
             Log.LogEvent += OnModLog;
             if (DebugMode.Value)
@@ -97,6 +100,24 @@ namespace EvenFasterSaveLoad
             Log.LogInfo($"{Name} {Version} ready");
         }
 
+        /// <summary>The GUID changed in 1.0.2 and the config file is named after it: copy the old settings once.</summary>
+        private void TakeOverOldConfig()
+        {
+            try
+            {
+                string old = System.IO.Path.Combine(Paths.ConfigPath, OldGuid + ".cfg");
+                if (System.IO.File.Exists(Config.ConfigFilePath) || !System.IO.File.Exists(old))
+                    return;
+                System.IO.File.Copy(old, Config.ConfigFilePath);
+                Config.Reload();
+                Log.LogInfo($"Settings taken over from {OldGuid}.cfg");
+            }
+            catch (Exception e)
+            {
+                Log.LogWarning($"Could not take over the old settings: {e.Message}");
+            }
+        }
+
         private void OnDestroy()
         {
             Application.quitting -= MapPngPatches.WaitForWrite;
@@ -108,24 +129,31 @@ namespace EvenFasterSaveLoad
         {
             LoadingScreenPatches.Tick();
             TakePendingNotice();
-            if (!DebugMode.Value)
-                return;
-            if (Input.GetKeyDown(EnableKey.Value))
-                SetModEnabled(true);
-            else if (Input.GetKeyDown(DisableKey.Value))
-                SetModEnabled(false);
         }
 
-        private void SetModEnabled(bool enabled)
+        internal static void SetModEnabled(bool enabled)
         {
             modEnabled = enabled;
+            if (Enabled != null && Enabled.Value != enabled)
+                Enabled.Value = enabled; // saved, so a restart keeps it
             string state = enabled ? "ON (all enabled features)" : "OFF (vanilla game; pathfinding threads apply from the next scene)";
             Log.LogMessage($"[Debug] {Name} {state}");
             banner = $"{Name}: {state}";
             bannerUntil = Time.realtimeSinceStartup + 3f;
         }
 
-        /// <summary>Last load/save timings, shown in the debug overlay (set by Timing).</summary>
+        internal static ConfigEntry<bool> ShowTimings;
+
+        /// <summary>The timings window: from the config, also switched (and saved) from the dev menu (DevMenu class).</summary>
+        internal static bool TimingsWindow
+        {
+            get => ShowTimings != null && ShowTimings.Value;
+            set => ShowTimings.Value = value;
+        }
+
+        private Rect timingsRect = new Rect(10, 10, 390, 110);
+
+        /// <summary>Last load/save timings, shown in the timings window (set by Timing).</summary>
         internal static string LastLoad = "Load: -";
         internal static string LastSave = "Save: -";
         internal static string LastTransition = "Transition: -";
@@ -143,15 +171,20 @@ namespace EvenFasterSaveLoad
             }
 
             DrawNotice();
+            if (TimingsWindow)
+                timingsRect = GUI.Window(0x0EF5, timingsRect, DrawTimings, Name);
             if (!DebugMode.Value)
                 return;
 
-            // Always-on corner panel: current mode and the last load/save durations.
-            string panel = $"{Name}: {(modEnabled ? "ON" : "OFF")}  [{EnableKey.Value}/{DisableKey.Value}]\n{LastTransition}\n{LastLoad}\n{LastSave}";
-            GUI.Box(new Rect(10, 10, 380, 86), panel, panelStyle);
-
             if (banner != null && Time.realtimeSinceStartup <= bannerUntil)
                 GUI.Box(new Rect(Screen.width / 2f - 260, 40, 520, 44), banner, bannerStyle);
+        }
+
+        // The last load/save durations; draggable while the cursor is free.
+        private void DrawTimings(int id)
+        {
+            GUILayout.Label($"Mod: {(modEnabled ? "ON" : "OFF")}\n{LastTransition}\n{LastLoad}\n{LastSave}", panelStyle);
+            GUI.DragWindow();
         }
 
         // ---- on-screen notices --------------------------------------------------------------------------
@@ -273,11 +306,20 @@ namespace EvenFasterSaveLoad
             LoadingFades = Config.Bind("Loading", "LoadingFades", FadeMode.Fast,
                 "Loading-screen fades. Vanilla = as in the game, Fast = 4x faster fades and a shorter pause after a load, Off = instant cut to and from the loading screen.");
 
+            Enabled = Config.Bind("Mod", "Enabled", true,
+                "Off = the mod does nothing: saving and loading as in vanilla (e.g. to compare). Works without a restart; " +
+                "pathfinding threads change from the next scene.");
+            modEnabled = Enabled.Value;
+            Enabled.SettingChanged += (_, __) =>
+            {
+                if (Enabled.Value != modEnabled)
+                    SetModEnabled(Enabled.Value);
+            };
+
             DebugMode = Config.Bind("Debug", "DebugMode", false,
-                "Hotkeys to switch the whole mod on/off at runtime (for A/B performance tests), and an error log " +
-                "at BepInEx/EvenFasterSaveLoad-debug.log with this mod's warnings plus all Unity errors and exceptions.");
-            EnableKey = Config.Bind("Debug", "EnableKey", KeyCode.F10, "Debug mode: switch the mod on (every feature enabled in this config).");
-            DisableKey = Config.Bind("Debug", "DisableKey", KeyCode.F11, "Debug mode: switch the whole mod off, for comparisons against the plain game.");
+                "An error log at BepInEx/EvenFasterSaveLoad-debug.log with this mod's warnings plus all Unity errors and exceptions.");
+            ShowTimings = Config.Bind("Debug", "TimingsWindow", false,
+                "A small window with the last load/save durations.");
             LogLoadTimes = Config.Bind("Debug", "LogLoadTimes", false,
                 "Log save/load durations (whole operation and per file) to the BepInEx console, in either mode.");
             VerifyAgainstVanilla = Config.Bind("Debug", "VerifyAgainstVanilla", false,

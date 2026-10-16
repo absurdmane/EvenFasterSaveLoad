@@ -6,7 +6,7 @@ namespace EvenFasterSaveLoad.Patches
 {
     /// <summary>
     /// LogLoadTimes: one summary line per save and per load, plus a line for each big file. Works in either mode,
-    /// so fast and vanilla can be compared on the same save (F10/F11). Time spent by VerifyAgainstVanilla is
+    /// so fast and vanilla can be compared on the same save (mod on/off from DevMenu). Time spent by VerifyAgainstVanilla is
     /// excluded; when it's on, the vanilla time it measured is shown next to the fast one.
     /// Load = from LoadGameWithMigration until the game raises LoadingDone.
     /// </summary>
@@ -63,7 +63,7 @@ namespace EvenFasterSaveLoad.Patches
         }
 
         /// <summary>Timings are collected for the console (LogLoadTimes) or the debug overlay (DebugMode).</summary>
-        private static bool Tracking => Plugin.LogLoadTimes.Value || Plugin.DebugMode.Value;
+        private static bool Tracking => Plugin.LogLoadTimes.Value || Plugin.DebugMode.Value || Plugin.TimingsWindow;
 
         private static readonly Totals Load = new Totals();
         private static readonly Totals Save = new Totals();
