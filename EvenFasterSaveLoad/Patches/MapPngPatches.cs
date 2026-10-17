@@ -10,8 +10,9 @@ namespace EvenFasterSaveLoad.Patches
 {
     /// <summary>
     /// Vanilla encodes the revealed-map PNG on the main thread during every save. The pixels still have to be
-    /// read back on the main thread, but encoding and writing move to a worker. Everything that might read,
-    /// copy or delete the save folder waits for the write first.
+    /// read back on the main thread, but encoding and writing move to a worker. Whatever reads the PNG, copies or deletes the save
+    /// folder waits for the write first. A load doesn't wait at its start: the PNG is only read by RevealCamera.OnLoadingGame,
+    /// seconds later, which waits itself (waiting at the start cost a level change ~0.4 s right after saving the Mines).
     /// </summary>
     [HarmonyPatch]
     internal static class MapPngPatches
@@ -89,9 +90,6 @@ namespace EvenFasterSaveLoad.Patches
 
         [HarmonyPrefix, HarmonyPatch(typeof(RevealCamera), nameof(RevealCamera.OnLoadingGame))]
         private static void BeforeMapLoad() => WaitForWrite();
-
-        [HarmonyPrefix, HarmonyPatch(typeof(SaveController), nameof(SaveController.LoadGameWithMigration))]
-        private static void BeforeLoadGame() => WaitForWrite();
 
         [HarmonyPrefix, HarmonyPatch(typeof(SaveController), nameof(SaveController.RemoveCharacter))]
         private static void BeforeDelete() => WaitForWrite();

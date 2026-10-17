@@ -44,7 +44,9 @@ namespace EvenFasterSaveLoad.Patches
             {
                 fsSerializer fs = FsHost.Serializer;
                 object vanilla = null;
-                fs.TryDeserialize(fsJsonParser.Parse(json), type, ref vanilla);
+                fsData data = fsJsonParser.Parse(json);
+                SavedAssets.CollapseGraphs(data); // as SaveController.Deserialize does
+                fs.TryDeserialize(data, type, ref vanilla);
                 LastVanillaMs = Ms(Stopwatch.GetTimestamp() - start);
                 // Compare both object graphs through vanilla's own printer.
                 fs.TrySerialize(type, fast, out fsData a);

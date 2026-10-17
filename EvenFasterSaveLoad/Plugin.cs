@@ -32,6 +32,8 @@ namespace EvenFasterSaveLoad
         internal static ConfigEntry<int> PathfindingThreads;
         internal static ConfigEntry<bool> FastSceneLoading;
         internal static ConfigEntry<FadeMode> LoadingFades;
+        internal static ConfigEntry<bool> KeepLevelAssets;
+        internal static ConfigEntry<float> KeepLevelAssetsMemoryGb;
         internal static ConfigEntry<bool> DebugMode;
         internal static ConfigEntry<bool> LogLoadTimes;
         internal static ConfigEntry<bool> VerifyAgainstVanilla;
@@ -82,7 +84,7 @@ namespace EvenFasterSaveLoad
             foreach (Type patches in new[]
                      {
                          typeof(SavePatches), typeof(LoadPatches), typeof(MapPngPatches),
-                         typeof(PathfindingPatches), typeof(LoadingScreenPatches), typeof(Timing),
+                         typeof(PathfindingPatches), typeof(LoadingScreenPatches), typeof(Timing), typeof(AssetCache),
                      })
             {
                 // A game update breaking one patch shouldn't take the other features with it.
@@ -97,6 +99,7 @@ namespace EvenFasterSaveLoad
             }
 
             Application.quitting += MapPngPatches.WaitForWrite;
+            SaveController.LoadingDone += AssetCache.AfterLoad;
             Log.LogInfo($"{Name} {Version} ready");
         }
 
@@ -121,6 +124,8 @@ namespace EvenFasterSaveLoad
         private void OnDestroy()
         {
             Application.quitting -= MapPngPatches.WaitForWrite;
+            SaveController.LoadingDone -= AssetCache.AfterLoad;
+            AssetCache.Clear();
             harmony?.UnpatchSelf();
             Diagnostics.Stop();
         }
@@ -305,6 +310,19 @@ namespace EvenFasterSaveLoad
                 "While the loading screen is up, let Unity spend more time per frame loading the scene (background priority, texture upload budget). May make the loading animation stutter.");
             LoadingFades = Config.Bind("Loading", "LoadingFades", FadeMode.Fast,
                 "Loading-screen fades. Vanilla = as in the game, Fast = 4x faster fades and a shorter pause after a load, Off = instant cut to and from the loading screen.");
+            KeepLevelAssets = Config.Bind("Experimental", "KeepLevelAssets", false,
+                "Keep the textures, meshes and sounds of levels you left in memory, so going back there loads faster. " +
+                "Costs RAM and video memory; levels are kept while the game stays under KeepLevelAssetsMemoryGb.");
+            KeepLevelAssetsMemoryGb = Config.Bind("Experimental", "KeepLevelAssetsMemoryGb", 0f,
+                new ConfigDescription(
+                    "Memory limit for KeepLevelAssets: over it, the oldest kept level is let go after a load. " +
+                    "0 = auto: your RAM minus 6 GB (10 GB on a 16 GB PC, 26 GB on 32 GB).",
+                    new AcceptableValueRange<float>(0f, 128f)));
+            KeepLevelAssets.SettingChanged += (_, __) =>
+            {
+                if (!KeepLevelAssets.Value)
+                    AssetCache.Clear();
+            };
 
             Enabled = Config.Bind("Mod", "Enabled", true,
                 "Off = the mod does nothing: saving and loading as in vanilla (e.g. to compare). Works without a restart; " +

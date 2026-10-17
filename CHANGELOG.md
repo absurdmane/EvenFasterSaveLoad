@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Fast loading works again on game 0.5.08: the game started reading saves through a new method, so save files were being
+  read the vanilla way. This includes the files with embedded asset references (Globals, the Mines, your apartment):
+  the fast reader now repeats the game's new asset step itself.
+- A level change right after a save no longer waits for the map image to be written (about 0.4 s when leaving the Mines).
+
 ## 1.1.0
 
 - Removed the debug hotkeys (F10 / F11, `EnableKey` / `DisableKey`). The mod on/off switch for A/B tests is now a button
