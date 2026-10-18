@@ -18,7 +18,7 @@ namespace EvenFasterSaveLoad
         /// <summary>The GUID before 1.0.2; its config file is taken over on the first start.</summary>
         private const string OldGuid = "obenseuer.evenfastersaveload";
         public const string Name = "Even Faster SaveLoad";
-        public const string Version = "1.1.0";
+        public const string Version = "1.2.0";
 
         internal static ManualLogSource Log;
 
@@ -123,6 +123,9 @@ namespace EvenFasterSaveLoad
 
         private void OnDestroy()
         {
+            MapPngPatches.WaitForWrite();
+            Log.LogEvent -= OnModLog;
+            Timing.Unload();
             Application.quitting -= MapPngPatches.WaitForWrite;
             SaveController.LoadingDone -= AssetCache.AfterLoad;
             AssetCache.Clear();

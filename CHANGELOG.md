@@ -1,11 +1,14 @@
 # Changelog
 
-## Unreleased
+## 1.2.0
 
 - Fast loading works again on game 0.5.08: the game started reading saves through a new method, so save files were being
   read the vanilla way. This includes the files with embedded asset references (Globals, the Mines, your apartment):
   the fast reader now repeats the game's new asset step itself.
 - A level change right after a save no longer waits for the map image to be written (about 0.4 s when leaving the Mines).
+- New experimental setting `[Experimental] KeepLevelAssets` (off by default): keeps the assets of levels you left in memory,
+  so going back to them loads faster. `KeepLevelAssetsMemoryGb` limits how much memory the game may use for it
+  (0 = auto: your RAM minus 6 GB). Costs RAM and video memory.
 
 ## 1.1.0
 

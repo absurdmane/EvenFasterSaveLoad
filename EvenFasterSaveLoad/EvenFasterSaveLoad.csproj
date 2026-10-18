@@ -9,7 +9,7 @@
     <Authors>absurdmane</Authors>
     <Company>absurdmane</Company>
     <Product>Even Faster SaveLoad</Product>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <LangVersion>latest</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Nullable>disable</Nullable>
@@ -51,8 +51,18 @@
   </ItemGroup>
 
   <Target Name="DeployToGame" AfterTargets="Build" Condition="'$(Deploy)' == 'true'">
+    <Delete Files="$(GameDir)\BepInEx\scripts\EvenFasterSaveLoad\EvenFasterSaveLoad.dll;$(GameDir)\BepInEx\scripts\EvenFasterSaveLoad\EvenFasterSaveLoad.pdb" />
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(GameDir)\BepInEx\plugins\EvenFasterSaveLoad" />
     <Message Importance="high" Text="EvenFasterSaveLoad -> $(GameDir)\BepInEx\plugins\EvenFasterSaveLoad" />
+  </Target>
+
+  <!-- Development: -p:Deploy=scripts puts the dll into BepInEx\scripts, where the DevMenu tool loads it and reloads it from
+       Tools > Reload changed without restarting the game. The copy in plugins is removed so the mod isn't loaded twice. -->
+  <Target Name="DeployToScripts" AfterTargets="Build" Condition="'$(Deploy)' == 'scripts'">
+    <Delete Files="$(GameDir)\BepInEx\plugins\EvenFasterSaveLoad\EvenFasterSaveLoad.dll" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(GameDir)\BepInEx\scripts\EvenFasterSaveLoad" />
+    <Copy SourceFiles="$(TargetDir)$(TargetName).pdb" DestinationFolder="$(GameDir)\BepInEx\scripts\EvenFasterSaveLoad" Condition="Exists('$(TargetDir)$(TargetName).pdb')" />
+    <Message Importance="high" Text="EvenFasterSaveLoad -> $(GameDir)\BepInEx\scripts\EvenFasterSaveLoad (press the reload key in game)" />
   </Target>
 
 </Project>

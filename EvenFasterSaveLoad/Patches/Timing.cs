@@ -86,11 +86,16 @@ namespace EvenFasterSaveLoad.Patches
             {
                 Phases.Clear();
                 Load.Begin(Plugin.FastDeserializerActive);
-                loadStart = Stopwatch.GetTimestamp();
             }
         }
 
-        private static long loadStart;
+        /// <summary>The mod is being unloaded (DevMenu reload).</summary>
+        internal static void Unload()
+        {
+            if (subscribed)
+                SaveController.LoadingDone -= LoadFinished;
+            subscribed = false;
+        }
 
         private static void LoadFinished()
         {
@@ -98,8 +103,6 @@ namespace EvenFasterSaveLoad.Patches
             if (!Load.Clock.IsRunning)
                 return;
             Load.Clock.Stop();
-            // TEMPORARY (comparing the experiments): this load, kept for the transition line written when the screen is back.
-            pendingLoad = $"load {Load.TotalMs / 1000:0.00} s (reading saves {Load.Ms / 1000:0.00} s) | {AllPhases()}";
             string phases = TopPhases();
             if (Plugin.LogLoadTimes.Value)
                 Plugin.Log.LogMessage($"[Timing] Load {Load.TotalMs / 1000:0.00} s total; " + Load.Summary("reading saves") + phases);
@@ -194,7 +197,7 @@ namespace EvenFasterSaveLoad.Patches
             var parts = new System.Collections.Generic.List<string>();
             foreach (var kv in list)
             {
-                if (parts.Count == 12 || kv.Value < 20)
+                if (parts.Count == 8 || kv.Value < 20)
                     break;
                 parts.Add($"{kv.Key} {kv.Value:0} ms");
             }
@@ -254,34 +257,6 @@ namespace EvenFasterSaveLoad.Patches
         private static void SceneIn()
         {
             sceneStart = Stopwatch.GetTimestamp();
-            fromScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name; // TEMPORARY (transition log)
-            // TEMPORARY (finding where a level change spends its time): from the load call to the scene starting to load.
-            if (loadStart != 0 && Tracking)
-                AddPhase("before the scene (save files, migrations, fade)", loadStart);
-            loadStart = 0;
-        }
-
-        // TEMPORARY (finding where a level change spends its time): the dialogue restore and the save migrations.
-        [HarmonyPrefix, HarmonyPriority(Priority.First)]
-        [HarmonyPatch(typeof(PixelCrushers.DialogueSystem.PersistentDataManager), nameof(PixelCrushers.DialogueSystem.PersistentDataManager.ApplySaveData))]
-        private static void DialogueIn(out long __state) => __state = Stopwatch.GetTimestamp();
-
-        [HarmonyFinalizer]
-        [HarmonyPatch(typeof(PixelCrushers.DialogueSystem.PersistentDataManager), nameof(PixelCrushers.DialogueSystem.PersistentDataManager.ApplySaveData))]
-        private static void DialogueOut(long __state)
-        {
-            if (Tracking)
-                AddPhase("dialogue restore (Lua)", __state);
-        }
-
-        [HarmonyPrefix, HarmonyPatch(typeof(MigrationController), nameof(MigrationController.RunMigrations))]
-        private static void MigrationsIn(out long __state) => __state = Stopwatch.GetTimestamp();
-
-        [HarmonyPostfix, HarmonyPatch(typeof(MigrationController), nameof(MigrationController.RunMigrations))]
-        private static void MigrationsOut(long __state)
-        {
-            if (Tracking)
-                AddPhase("save migrations", __state);
         }
 
         private static long sceneStart;
@@ -304,49 +279,6 @@ namespace EvenFasterSaveLoad.Patches
             Plugin.LastTransition = $"Transition: {seconds:0.00} s ({mode}, fades {fades})";
             if (Plugin.LogLoadTimes.Value)
                 Plugin.Log.LogMessage($"[Timing] Transition {seconds:0.00} s from screen fading out to fully back ({mode}, fades {fades})");
-            WriteTransitionLine(seconds, fades);
-        }
-
-        // ---- TEMPORARY (comparing the experiments): one line per level change in BepInEx/EvenFasterSaveLoad-transitions.log --------
-        // Remove before the release, with pendingLoad / fromScene / AllPhases.
-
-        private static string pendingLoad;
-        private static string fromScene;
-
-        private static string AllPhases()
-        {
-            var list = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, double>>(Phases);
-            list.Sort((a, b) => b.Value.CompareTo(a.Value));
-            var parts = new System.Collections.Generic.List<string>();
-            foreach (var kv in list)
-                if (kv.Value >= 10)
-                    parts.Add($"{kv.Key.Trim()} {kv.Value / 1000:0.00}");
-            return string.Join(", ", parts);
-        }
-
-        private static string Settings()
-        {
-            if (!Plugin.ModEnabled)
-                return "MOD OFF";
-            string On(bool v) => v ? "on" : "off";
-            return $"KeepLevelAssets {On(Plugin.KeepLevelAssets.Value)}, " +
-                   $"FastSceneLoading {On(Plugin.FastSceneLoading.Value)}, fast read {On(Plugin.FastDeserializerActive)}, fades {Plugin.LoadingFades.Value}";
-        }
-
-        private static void WriteTransitionLine(double seconds, FadeMode fades)
-        {
-            string to = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
-            string line = $"{DateTime.Now:HH:mm:ss}  {fromScene ?? "?"} -> {to}: {seconds:0.00} s | {pendingLoad ?? "load ?"} | {Settings()}";
-            pendingLoad = null;
-            try
-            {
-                string path = System.IO.Path.Combine(BepInEx.Paths.BepInExRootPath, "EvenFasterSaveLoad-transitions.log");
-                System.IO.File.AppendAllText(path, line + Environment.NewLine);
-            }
-            catch (Exception e)
-            {
-                Plugin.Log.LogWarning($"Transition log: {e.Message}");
-            }
         }
 
         // ---- shared --------------------------------------------------------------------------------------

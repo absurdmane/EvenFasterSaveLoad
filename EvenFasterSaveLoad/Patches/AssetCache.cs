@@ -163,10 +163,6 @@ namespace EvenFasterSaveLoad.Patches
 
             long memory = GameMemory();
             double limit = LimitBytes;
-            // TEMPORARY (measuring KeepLevelAssets): the game's memory after each level load. Remove once the defaults are decided.
-            if (Plugin.LogLoadTimes.Value)
-                Plugin.Log.LogInfo($"[KeepLevelAssets] {scene} loaded; game memory {memory / 1e9:0.00} GB, limit {limit / 1e9:0.0} GB, " +
-                                   $"levels kept: {(kept.Count == 0 ? "none" : string.Join(", ", kept.Select(l => l.Scene)))}");
 
             if (memory < 0 || memory <= limit || kept.Count == 0)
                 return;
